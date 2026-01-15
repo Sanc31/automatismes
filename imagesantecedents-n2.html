@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QCM Maths 2de : Niveau Avancé</title>
+    <title>QCM Maths 2de : Lecture Graphique (Expert)</title>
     <script>
         window.MathJax = {
             tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
@@ -15,18 +15,17 @@
     <script src="https://unpkg.com/function-plot@1/dist/function-plot.js"></script>
     <style>
         :root {
-            /* Thème Indigo / Avancé */
-            --primary: #4338ca; 
-            --primary-hover: #3730a3;
-            --bg: #f0f2f5;
+            --primary: #5b21b6;
+            --primary-hover: #4c1d95;
+            --bg: #f3f4f6;
             --card: #ffffff;
-            --text: #1f2937;
+            --text: #111827;
             --text-muted: #6b7280;
             --success-bg: #dcfce7;
             --success-text: #166534;
             --danger-bg: #fee2e2;
             --danger-text: #991b1b;
-            --hint-bg: #fff7ed;
+            --hint-bg: #ffedd5;
             --hint-text: #9a3412;
         }
 
@@ -47,9 +46,10 @@
             width: 100%;
             max-width: 900px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             padding: 30px;
+            border: 1px solid #e5e7eb;
         }
 
         header { text-align: center; margin-bottom: 25px; }
@@ -99,7 +99,7 @@
             border-radius: 8px; cursor: pointer; font-size: 1rem; color: var(--text);
             transition: all 0.2s; text-align: left;
         }
-        .btn-option:hover:not(:disabled) { border-color: var(--primary); background-color: #eef2ff; }
+        .btn-option:hover:not(:disabled) { border-color: var(--primary); background-color: #f5f3ff; }
         .btn-option.correct { background-color: var(--success-bg); border-color: #22c55e; color: var(--success-text); }
         .btn-option.wrong { background-color: var(--danger-bg); border-color: #ef4444; color: var(--danger-text); opacity: 0.8; }
 
@@ -108,7 +108,7 @@
         .feedback.success { background-color: var(--success-bg); border-left: 4px solid #22c55e; color: var(--success-text); }
 
         .controls { display: flex; justify-content: space-between; margin-top: 20px; height: 50px; }
-        .btn-nav { color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; font-weight: 600;}
+        .btn-nav { color: white; border: none; padding: 0 24px; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; font-weight: 600; display: flex; align-items: center;}
         .btn-next { background-color: var(--primary); }
         .btn-next:hover { background-color: var(--primary-hover); }
         .btn-prev { background-color: #9ca3af; display: none; }
@@ -136,7 +136,7 @@
 
 <div class="container">
     <header>
-        <h1>🎯 Fonctions : Niveau Avancé</h1>
+        <h1>🎯 Fonctions : Lectures Graphiques</h1>
         <div class="progress-container">
             <div class="progress-bar" id="progress-bar"></div>
         </div>
@@ -159,7 +159,7 @@
     </div>
 
     <div id="result-area" class="result-screen">
-        <h2>Quiz Terminé !</h2>
+        <h2>Défi Terminé !</h2>
         <p>Ton score final :</p>
         <div class="score-circle" id="score-circle">
             <div class="score-inner" id="final-score"></div>
@@ -170,163 +170,151 @@
 </div>
 
 <script>
+    // --- GESTION DES COURBES "MAIN LEVÉE" ---
+    
+    function getCurveData(points, stepsPerSegment = 25) {
+        let data = [];
+        points.sort((a, b) => a[0] - b[0]);
+        for (let i = 0; i < points.length - 1; i++) {
+            let p0 = points[i];
+            let p1 = points[i+1];
+            for (let j = 0; j <= stepsPerSegment; j++) {
+                let mu = j / stepsPerSegment;
+                let mu2 = (1 - Math.cos(mu * Math.PI)) / 2; // Interpolation Cosinus
+                let x = p0[0] * (1 - mu) + p1[0] * mu;
+                let y = p0[1] * (1 - mu2) + p1[1] * mu2;
+                data.push([x, y]);
+            }
+        }
+        return data;
+    }
+
+    // Données pour la Question 1 (Image)
+    // Point (-3, 2) comme leurre
+    const q1Points = [
+        [-4, -0.5], 
+        [-3, 2],    // Point piège demandé
+        [-1, -2], 
+        [2, 3],     // La vraie réponse
+        [4, 0]
+    ];
+    const q1Curve = getCurveData(q1Points);
+
+    // Données pour la Question 7 (Antécédent)
+    // Le point (2,0) est conservé comme piège
+    const q7Points = [
+        [-4, 1], 
+        [-2, 4],  
+        [1, -2],  
+        [2, 0],   // Point piège
+        [3, 2],   // La réponse exacte
+        [5, 0]
+    ];
+    const q7Curve = getCurveData(q7Points);
+
+
+    // --- DONNÉES DU QUIZ ---
+
     const quizData = [
-        // Q1 : Intersection f(x) = g(x)
+        // Q1 : Lecture d'image sur Courbe "Main Levée"
         {
-            question: "Résoudre graphiquement l'équation $f(x) = g(x)$.",
+            question: "Quelle est l'image de $2$ par la fonction représentée ?",
             plotConfig: {
                 data: [
-                     { fn: '0.5*x^2 - 2', color: '#4338ca', attr: { "stroke-width": 3 }, title: 'f(x) (Parabole)' }, 
-                     { fn: '0.5*x - 1', color: '#0ea5e9', attr: { "stroke-width": 3 }, title: 'g(x) (Droite)' },
-                     { points: [[-1, -1.5], [2, 0]], fnType: 'points', graphType: 'scatter', color: 'black', attr: {r: 5}, isHint: true }
+                    { points: q1Curve, fnType: 'points', graphType: 'polyline', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { points: q1Points, fnType: 'points', graphType: 'scatter', color: 'black', attr: {r: 4} },
+                    { points: [[2, 3]], fnType: 'points', graphType: 'scatter', color: '#db2777', attr: {r: 5}, isHint: true }, 
+                    { fn: '0', color: '#9ca3af', attr: {'stroke-dasharray': '2,2'}, range: [-5, 5], isHint: true }
                 ],
-                yAxis: { domain: [-4, 4] },
-                xAxis: { domain: [-4, 5] }
-            },
-            options: [
-                { text: "$S = \\{-1,5 ; 0\\}$", correct: false },
-                { text: "$S = \\{-1 ; 2\\}$", correct: true },
-                { text: "$S = [-1 ; 2]$", correct: false },
-                { text: "$S = \\emptyset$", correct: false }
-            ],
-            hint: "💡 On cherche les abscisses ($x$) des points d'intersection entre la courbe violette et la droite bleue.",
-            explanation: "Les deux courbes se croisent aux points d'abscisses $x = -1$ et $x = 2$."
-        },
-        // Q2 : Nombre de solutions (courbe polynomiale complexe)
-        {
-            question: "Combien l'équation $f(x) = 1$ admet-elle de solutions ?",
-            plotConfig: {
-                data: [
-                    { fn: '0.2*(x+2)*(x-1)*(x-3)*(x+1) + 1.5', color: '#4338ca', attr: { "stroke-width": 3 } },
-                    { fn: '1', color: '#9ca3af', attr: {'stroke-dasharray': '5,5'}, isHint: true }
-                ],
-                yAxis: { domain: [-2, 5] },
+                yAxis: { domain: [-3, 4] },
                 xAxis: { domain: [-4, 4] }
             },
             options: [
-                { text: "2 solutions", correct: false },
-                { text: "3 solutions", correct: false },
-                { text: "4 solutions", correct: true },
-                { text: "0 solution", correct: false }
+                { text: "$3$", correct: true },
+                { text: "$-3$", correct: false }, // Piège correspondant au point (-3, 2)
+                { text: "$2$", correct: false },
+                { text: "$0$", correct: false }
             ],
-            hint: "💡 Trace mentalement une ligne horizontale à la hauteur $y=1$.",
-            explanation: "La droite horizontale $y=1$ coupe la courbe en 4 points distincts."
+            hint: "💡 Cherche $x=2$ sur l'axe horizontal, monte jusqu'au point noir sur la courbe et lis son ordonnée.",
+            explanation: "La courbe passe par le point $(2 ; 3)$. L'image de $2$ est donc $3$. (Attention : $-3$ est l'abscisse d'un point qui a pour hauteur 2, ce n'est pas ce qu'on cherche)."
         },
-        // Q3 : Position relative f(x) >= g(x)
+
+        // Q2 : Résolution f(x) = k
         {
-            question: "Sur quel ensemble a-t-on $f(x) \\ge g(x)$ ? (Parabole au-dessus de Droite)",
+            question: "Résoudre graphiquement l'équation $f(x) = 2$.",
             plotConfig: {
                 data: [
-                     { fn: '0.5*x^2 - 2', color: '#4338ca', attr: { "stroke-width": 3 } }, 
-                     { fn: '0.5*x - 1', color: '#0ea5e9', attr: { "stroke-width": 3 } },
-                     // Zones coloriées en indice
-                     { fn: '0.5*x^2 - 2', range: [-5, -1], color: 'rgba(67, 56, 202, 0.2)', closed: true, isHint: true },
-                     { fn: '0.5*x^2 - 2', range: [2, 5], color: 'rgba(67, 56, 202, 0.2)', closed: true, isHint: true }
+                    { fn: 'x^2 - 2', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { fn: '2', color: '#000', attr: {'stroke-dasharray': '5,5'}, isHint: true }
                 ],
-                yAxis: { domain: [-4, 5] },
-                xAxis: { domain: [-4, 5] }
+                yAxis: { domain: [-3, 6] },
+                xAxis: { domain: [-4, 4] }
             },
             options: [
-                { text: "$[-1 ; 2]$", correct: false },
-                { text: "$]-\\infty ; -1] \\cup [2 ; +\\infty[$", correct: true },
-                { text: "$[2 ; +\\infty[$", correct: false },
-                { text: "$]-\\infty ; -1]$", correct: false }
+                { text: "$S = \\{2\\}$", correct: false },
+                { text: "$S = \\{-2 ; 2\\}$", correct: true },
+                { text: "$S = \\{0\\}$", correct: false },
+                { text: "$S = \\emptyset$", correct: false }
             ],
-            hint: "💡 Regarde où la courbe violette est située physiquement plus HAUT que la droite bleue.",
-            explanation: "La parabole est au-dessus de la droite à l'extérieur des racines, c'est-à-dire avant -1 et après 2."
+            hint: "💡 Trace mentalement une ligne horizontale à la hauteur $y=2$. Quels sont les $x$ des points d'intersection ?",
+            explanation: "La droite $y=2$ coupe la parabole en deux points d'abscisses $-2$ et $2$."
         },
-        // Q4 : Calcul d'image avec racine
+
+        // Q3 : Inéquation f(x) <= 0
         {
-            question: "Calculer l'image de $-3$ par la fonction $f(x) = \\sqrt{x^2 + 7}$.",
+            question: "Sur quel intervalle a-t-on $f(x) \\le 0$ ?",
             plotConfig: {
                 data: [
-                    { fn: 'sqrt(x^2 + 7)', color: '#4338ca', attr: { "stroke-width": 3 }, skipTip: true },
-                    { points: [[-3, 4]], fnType: 'points', graphType: 'scatter', color: 'black', attr: {r: 5}, isHint: true }
+                    { fn: '(x+1)*(x-3)', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { fn: '0', color: 'black', attr: { "stroke-width": 1 } }
                 ],
-                yAxis: { domain: [0, 6] },
-                xAxis: { domain: [-5, 5] }
+                yAxis: { domain: [-5, 5] },
+                xAxis: { domain: [-2, 5] }
+            },
+            options: [
+                { text: "$[-1 ; 3]$", correct: true },
+                { text: "$]-\\infty ; -1] \\cup [3 ; +\\infty[$", correct: false },
+                { text: "$[0 ; 3]$", correct: false },
+                { text: "$[-4 ; 0]$", correct: false }
+            ],
+            hint: "💡 Cherche la partie de la courbe située EN DESSOUS de l'axe horizontal.",
+            explanation: "La courbe est sous l'axe des abscisses entre ses deux racines $x=-1$ et $x=3$."
+        },
+
+        // Q4 : PIÈGE - Confusion Image/Antécédent
+        {
+            question: "Quelle est l'image de $0$ par cette fonction ?",
+            plotConfig: {
+                data: [
+                    { fn: '-x^2 + 4', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { 
+                        points: [[0, 4], [2, 0], [-2, 0]], 
+                        fnType: 'points', graphType: 'scatter', color: 'black', attr: {r: 5}
+                    }
+                ],
+                yAxis: { domain: [-2, 6] },
+                xAxis: { domain: [-4, 4] }
             },
             options: [
                 { text: "$4$", correct: true },
-                { text: "$\\sqrt{1}$", correct: false },
                 { text: "$2$", correct: false },
-                { text: "$16$", correct: false }
-            ],
-            hint: "💡 Remplace $x$ par $-3$. Attention : $(-3)^2$ est positif !",
-            explanation: "$f(-3) = \\sqrt{(-3)^2 + 7} = \\sqrt{9 + 7} = \\sqrt{16} = 4$."
-        },
-        // Q5 : Inéquation f(x) > 0 avec Union
-        {
-            question: "Résoudre graphiquement l'inéquation $f(x) > 0$.",
-            plotConfig: {
-                data: [
-                    // Racines en -2, 1, 3. f(x) = -(x+2)(x-1)(x-3)
-                    { fn: '-0.2*(x+2)*(x-1)*(x-3)', color: '#4338ca', attr: { "stroke-width": 3 } },
-                    { fn: '0', color: 'black', attr: {'stroke-width': 1} }
-                ],
-                yAxis: { domain: [-4, 4] },
-                xAxis: { domain: [-4, 5] }
-            },
-            options: [
-                { text: "$]-2 ; 1[$", correct: false },
-                { text: "$]-\\infty ; -2[ \\cup ]1 ; 3[$", correct: true },
-                { text: "$[1 ; 3]$", correct: false },
-                { text: "$]-2 ; 1[ \\cup ]3 ; +\\infty[$", correct: false }
-            ],
-            hint: "💡 Cherche les intervalles où la courbe est strictement au-dessus de l'axe des abscisses.",
-            explanation: "La courbe est positive avant -2 et entre 1 et 3."
-        },
-        // Q6 : Calcul algébrique avec fraction
-        {
-            question: "Soit $f(x) = 1 - \\frac{3}{x}$. Quelle est l'image de $\\frac{1}{2}$ ?",
-            plotConfig: {
-                data: [
-                    { fn: '1 - 3/x', color: '#4338ca', attr: { "stroke-width": 3 }, skipTip: true },
-                    { points: [[0.5, -5]], fnType: 'points', graphType: 'scatter', color: 'black', attr: {r: 5}, isHint: true }
-                ],
-                yAxis: { domain: [-8, 4] },
-                xAxis: { domain: [-2, 4] }
-            },
-            options: [
-                { text: "$-5$", correct: true },
-                { text: "$0,5$", correct: false },
                 { text: "$-2$", correct: false },
-                { text: "$7$", correct: false }
+                { text: "$0$", correct: false }
             ],
-            hint: "💡 Calcul : $f(0,5) = 1 - \\frac{3}{0,5}$. Rappel : diviser par $0,5$ revient à multiplier par 2.",
-            explanation: "$f(\\frac{1}{2}) = 1 - (3 \\div 0,5) = 1 - 6 = -5$."
+            hint: "💡 On cherche l'image de 0, c'est-à-dire $f(0)$. Regarde sur l'axe vertical. Ne confonds pas avec les antécédents !",
+            explanation: "L'image de $0$ se lit sur l'axe des ordonnées. La courbe passe par le sommet $(0 ; 4)$."
         },
-        // Q7 : Image de 0 (Fonction rationnelle)
+
+        // Q5 : Appartenance d'un point
         {
-            question: "On donne $f(x) = \\frac{2}{x-1}$. Quelle est l'image de $0$ ?",
+            question: "Le point $A(4 ; 15)$ appartient-il à la courbe représentée ci-dessous ?",
             plotConfig: {
                 data: [
-                    { fn: '2/(x-1)', color: '#4338ca', attr: { "stroke-width": 3 }, skipTip: true },
-                    { fn: '-1', color: '#000', attr: {'stroke-dasharray': '2,2'}, isHint: true }
+                    { fn: 'x^2 - 2', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { points: [[4, 15]], fnType: 'points', graphType: 'scatter', color: '#db2777', attr: {r: 5}, isHint: true }
                 ],
-                yAxis: { domain: [-5, 5] },
-                xAxis: { domain: [-4, 6] }
-            },
-            options: [
-                { text: "$0$", correct: false },
-                { text: "$-2$", correct: true },
-                { text: "$2$", correct: false },
-                { text: "Non défini", correct: false }
-            ],
-            hint: "💡 Remplace $x$ par $0$ dans la formule.",
-            explanation: "$f(0) = \\frac{2}{0-1} = \\frac{2}{-1} = -2$."
-        },
-        // Q8 : Le Piège du Point (Appartenance)
-        {
-            question: "Soit $f(x) = \\frac{6x}{x^2+2}$. Le point $A(3 ; 1,6)$ appartient-il à la courbe ?",
-            questionOverride: "Soit $f(x) = \\frac{6x}{x^2+2}$. Le point $A(3 ; 1,6)$ appartient-il à la courbe ?",
-            plotConfig: {
-                data: [
-                    { fn: '(6*x)/(x^2+2)', color: '#4338ca', attr: { "stroke-width": 3 } },
-                    { points: [[3, 1.6]], fnType: 'points', graphType: 'scatter', color: '#db2777', attr: {r: 5}, isHint: true }
-                ],
-                yAxis: { domain: [0, 3] },
-                xAxis: { domain: [0, 6] }
+                yAxis: { domain: [-5, 20] },
+                xAxis: { domain: [-5, 6] }
             },
             options: [
                 { text: "Oui", correct: false },
@@ -334,49 +322,116 @@
                 { text: "On ne peut pas savoir", correct: false },
                 { text: "Oui, c'est visible", correct: false }
             ],
-            hint: "💡 Ne te fie pas à tes yeux. Calcule $f(3)$ (en fraction) et compare avec $1,6$.",
-            explanation: "$f(3) = \\frac{18}{9+2} = \\frac{18}{11} \\approx 1,636$.<br>Comme $1,636 \\neq 1,6$, le point n'est pas sur la courbe."
+            hint: "💡 Regarde attentivement la position du point rose par rapport au tracé violet.",
+            explanation: "Le point n'est pas sur la courbe. (Calcul réel : $4^2 - 2 = 14$, donc le point $(4;15)$ est au-dessus)."
         },
-        // Q9 : Antécédent carré
+
+        // Q6 : Inéquation f(x) > k
         {
-            question: "Résoudre $f(x) = 4$ sachant que la courbe est une parabole $y=x^2$.",
+            question: "Résoudre graphiquement l'inéquation $f(x) > 3$.",
             plotConfig: {
                 data: [
-                    { fn: 'x^2', color: '#4338ca', attr: { "stroke-width": 3 } },
-                    { fn: '4', color: '#9ca3af', attr: {'stroke-dasharray': '5,5'}, isHint: true }
+                    { fn: '-(x-2)^2 + 4', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { fn: '3', color: '#000', attr: {'stroke-dasharray': '5,5'}, isHint: true },
+                    { fn: '-(x-2)^2 + 4', range: [1, 3], color: 'rgba(91, 33, 182, 0.2)', closed: true, isHint: true }
                 ],
-                yAxis: { domain: [-1, 6] },
+                yAxis: { domain: [-1, 5] },
+                xAxis: { domain: [-1, 5] }
+            },
+            options: [
+                { text: "$]1 ; 3[$", correct: true },
+                { text: "$[1 ; 3]$", correct: false },
+                { text: "$]-\\infty ; 1[ \\cup ]3 ; +\\infty[$", correct: false },
+                { text: "$]3 ; 4]$", correct: false }
+            ],
+            hint: "💡 Cherche pour quels $x$ la courbe est strictement au-dessus de la ligne $y=3$.",
+            explanation: "La bosse de la courbe dépasse la hauteur 3 pour les $x$ compris strictement entre 1 et 3."
+        },
+
+        // Q7 : Un antécédent sur Courbe "Main Levée"
+        {
+            question: "Donner un antécédent de $2$ par la fonction ci-dessous.",
+            plotConfig: {
+                data: [
+                    { points: q7Curve, fnType: 'points', graphType: 'polyline', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { points: q7Points, fnType: 'points', graphType: 'scatter', color: 'black', attr: {r: 4} },
+                    { fn: '2', color: '#9ca3af', attr: {'stroke-dasharray': '5,5'}, isHint: true },
+                    { points: [[3, 2]], fnType: 'points', graphType: 'scatter', color: '#db2777', attr: {r: 5}, isHint: true }
+                ],
+                yAxis: { domain: [-3, 5] },
+                xAxis: { domain: [-4, 6] }
+            },
+            options: [
+                { text: "$3$", correct: true },
+                { text: "$2$", correct: false },
+                { text: "$4$", correct: false },
+                { text: "$0$", correct: false } // MODIFICATION : Ajout de 0 comme piège
+            ],
+            hint: "💡 Trace une ligne horizontale à la hauteur $y=2$. Trouve le point de la courbe qui est sur cette ligne et lis son abscisse ($x$).",
+            explanation: "En traçant la droite $y=2$, on voit qu'elle coupe la courbe au point de coordonnées $(3 ; 2)$. L'antécédent est donc $3$."
+        },
+
+        // Q8 : Nombre de solutions
+        {
+            question: "Combien l'équation $f(x) = 1$ admet-elle de solutions ?",
+            plotConfig: {
+                data: [
+                    { fn: '0.1*x^3 - x + 0.5', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { fn: '1', color: '#9ca3af', attr: {'stroke-dasharray': '5,5'}, isHint: true }
+                ],
+                yAxis: { domain: [-3, 3] },
                 xAxis: { domain: [-4, 4] }
             },
             options: [
-                { text: "$x = 2$", correct: false },
-                { text: "$x = -2$", correct: false },
-                { text: "$x = 16$", correct: false },
-                { text: "$x = -2$ ou $x = 2$", correct: true }
+                { text: "1 solution", correct: false },
+                { text: "2 solutions", correct: false },
+                { text: "3 solutions", correct: true },
+                { text: "0 solution", correct: false }
             ],
-            hint: "💡 N'oublie pas qu'un nombre négatif au carré donne aussi un résultat positif.",
-            explanation: "Il y a deux nombres dont le carré est 4 : $2$ et $-2$."
+            hint: "💡 Regarde combien de fois la courbe coupe la ligne horizontale $y=1$.",
+            explanation: "La ligne $y=1$ traverse la courbe à trois reprises."
         },
-        // Q10 : Tableau de signes (Lecture graphique)
+
+        // Q9 : Equation impossible
         {
-            question: "Sur quel ensemble a-t-on $f(x) \\le 0$ ?",
+            question: "Résoudre graphiquement l'équation $f(x) = -5$.",
             plotConfig: {
                 data: [
-                    // Racines à -1, 2. Parabole tournée vers le haut.
-                    { fn: '(x+1)*(x-2)', color: '#4338ca', attr: { "stroke-width": 3 } },
-                    { fn: '(x+1)*(x-2)', range: [-1, 2], closed:true, color: 'rgba(67, 56, 202, 0.2)', isHint: true }
+                    { fn: 'x^2', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { fn: '-5', color: '#9ca3af', attr: {'stroke-dasharray': '5,5'}, isHint: true }
                 ],
-                yAxis: { domain: [-3, 5] },
-                xAxis: { domain: [-3, 4] }
+                yAxis: { domain: [-6, 5] },
+                xAxis: { domain: [-4, 4] }
             },
             options: [
-                { text: "$[-1 ; 2]$", correct: true },
-                { text: "$]-\\infty ; -1] \\cup [2 ; +\\infty[$", correct: false },
-                { text: "$[2 ; +\\infty[$", correct: false },
-                { text: "$[-2 ; 1]$", correct: false }
+                { text: "$S = \\emptyset$", correct: true },
+                { text: "$S = \\{-5\\}$", correct: false },
+                { text: "$S = \\{0\\}$", correct: false },
+                { text: "$S = \\{ -2,2 ; 2,2 \\}$", correct: false }
             ],
-            hint: "💡 On cherche la zone où la courbe est EN DESSOUS (ou sur) l'axe horizontal.",
-            explanation: "La courbe est en dessous de l'axe entre ses racines -1 et 2."
+            hint: "💡 La courbe descend-elle jusqu'à la hauteur -5 ?",
+            explanation: "La courbe est entièrement située au-dessus de l'axe des abscisses ($y \\ge 0$). Elle ne croise jamais la ligne $y=-5$."
+        },
+
+        // Q10 : La courbe en W (Nombre de solutions)
+        {
+            question: "Combien l'équation $f(x) = 1$ admet-elle de solutions ?",
+            plotConfig: {
+                data: [
+                    { fn: '0.2*(x+2)*(x-1)*(x-3)*(x+1) + 1.5', color: '#5b21b6', attr: { "stroke-width": 3 } },
+                    { fn: '1', color: '#9ca3af', attr: {'stroke-dasharray': '5,5'}, isHint: true }
+                ],
+                yAxis: { domain: [-2, 5] },
+                xAxis: { domain: [-4, 4] }
+            },
+            options: [
+                { text: "2", correct: false },
+                { text: "3", correct: false },
+                { text: "4", correct: true },
+                { text: "0", correct: false }
+            ],
+            hint: "💡 Imagine une droite horizontale à la hauteur 1. Combien de fois coupe-t-elle la courbe violette ?",
+            explanation: "La droite $y=1$ coupe la courbe en 4 points distincts."
         }
     ];
 
@@ -395,9 +450,7 @@
         const qData = quizData[currentQIndex];
         hasFailedCurrent = false; 
 
-        const qText = qData.questionOverride ? qData.questionOverride : qData.question;
-        document.getElementById('question-text').innerHTML = qText;
-
+        document.getElementById('question-text').innerHTML = qData.question;
         document.getElementById('current-q').innerText = currentQIndex + 1;
         document.getElementById('progress-bar').style.width = ((currentQIndex) / quizData.length * 100) + "%";
 
@@ -409,12 +462,11 @@
         const nextBtn = document.getElementById('btn-next');
         const prevBtn = document.getElementById('btn-prev');
         
-        nextBtn.style.display = 'block';
+        nextBtn.style.display = 'flex';
         nextBtn.innerText = (currentQIndex === quizData.length - 1) ? "Voir Résultats 🏆" : "Suivant →";
         nextBtn.disabled = false; 
-        nextBtn.style.opacity = "1";
 
-        prevBtn.style.display = (currentQIndex > 0) ? 'block' : 'none';
+        prevBtn.style.display = (currentQIndex > 0) ? 'flex' : 'none';
 
         const optsDiv = document.getElementById('options-container');
         optsDiv.innerHTML = "";
@@ -437,7 +489,7 @@
     }
 
     function renderFunctionPlot(config, showHints) {
-        let dataToUse = config.dataOverride ? config.dataOverride : config.data;
+        let dataToUse = config.data;
         const filteredData = dataToUse.filter(item => showHints ? true : !item.isHint);
         
         const width = document.getElementById('visual-area').clientWidth;
